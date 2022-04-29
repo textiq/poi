@@ -398,7 +398,10 @@ public abstract class PropertiesChunk extends Chunk {
         if (bytes != null) {
             out.write(bytes);
         }
-        out.write(new byte[8 - length]);
+        length = length % 8;
+        if ( length > 0) {
+            out.write(new byte[8 - length]);
+        }
     }
 
     private void writeVariableLengthValueHeader(OutputStream out, MAPIProperty propertyEx, MAPIType type,
