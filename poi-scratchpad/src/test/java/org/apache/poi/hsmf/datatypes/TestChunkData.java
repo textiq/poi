@@ -17,8 +17,16 @@
 
 package org.apache.poi.hsmf.datatypes;
 
+import static java.nio.charset.Charset.forName;
+import static org.apache.poi.hsmf.datatypes.MAPIProperty.CONTACT_VERSION;
+import static org.apache.poi.hsmf.datatypes.Types.CLS_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -85,6 +93,26 @@ public final class TestChunkData {
     void testSubjectChunk() {
         Chunk chunk = new StringChunk(0x0037, Types.UNICODE_STRING);
       assertEquals(chunk.getChunkId(), MAPIProperty.SUBJECT.id);
+    }
+
+    @Test
+    void testFixedHeaderDoesNotOverflowArray() throws IOException {
+        MessagePropertiesChunk chunk = new MessagePropertiesChunk(null);
+        byte[] dummyBytes = new byte[16];
+        for (int i = 0;i<16;i++){
+            dummyBytes[i]='a';
+        }
+        chunk.setProperty(new ChunkBasedPropertyValue(CONTACT_VERSION, 1, dummyBytes, CLS_ID));
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        chunk.writeProperties(stream);
+        String output = new String(stream.toByteArray(), StandardCharsets.UTF_8);
+
+        chunk.readProperties(IOUtils.toInputStream(output, StandardCharsets.UTF_8));
+
+        PropertyValue value = chunk.getRawValue(CONTACT_VERSION);
+        String originalData = new String(dummyBytes, StandardCharsets.UTF_8);
+        String readData = new String(value.data, StandardCharsets.UTF_8);
+        assertEquals(originalData, readData);
     }
 
 }
